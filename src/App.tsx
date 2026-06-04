@@ -9,7 +9,6 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('overview');
   const [users, setUsers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [approveEmail, setApproveEmail] = useState('');
