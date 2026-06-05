@@ -10,6 +10,7 @@ export default function App() {
   const [users, setUsers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [approveEmail, setApproveEmail] = useState('');
   const [approveMsg, setApproveMsg] = useState('');
@@ -20,19 +21,23 @@ export default function App() {
 
   const fetchAll = async () => {
     setLoading(true);
-    try {
-      const [u, p, s] = await Promise.all([
+       try {
+      const [u, p, s, o] = await Promise.all([
         axios.get(`${API}/users`),
         axios.get(`${API}/products`),
         axios.get(`${API}/stores`),
+        axios.get(`${API}/orders`),
       ]);
+
       setUsers(u.data);
       setProducts(p.data);
       setStores(s.data);
+      setOrders(o.data);
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const approveSeller = async () => {
@@ -256,17 +261,47 @@ export default function App() {
           </div>
         )}
 
-        {/* ORDERS */}
-        {tab === 'orders' && (
-          <div style={s.card}>
-            <h2 style={s.cardTitle}>All Orders</h2>
-            <p style={{ color: '#888', fontSize: 14 }}>Orders will appear here as customers place them.</p>
-          </div>
-        )}
+  {tab === 'orders' && (
+  <div style={s.card}>
+    <h2 style={s.cardTitle}>All Orders ({orders.length})</h2>
+    <table style={s.table}>
+      <thead>
+        <tr style={s.thead}>
+          <th style={s.th}>Order ID</th>
+          <th style={s.th}>Customer</th>
+          <th style={s.th}>Store</th>
+          <th style={s.th}>Total</th>
+          <th style={s.th}>Payment</th>
+          <th style={s.th}>Status</th>
+          <th style={s.th}>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {orders.map(o => (
+          <tr key={o.id} style={s.tr}>
+            <td style={s.td}><b>#{o.id.slice(0,8).toUpperCase()}</b></td>
+            <td style={s.td}>{o.customer_name || '-'}</td>
+            <td style={s.td}>{o.store_name || '-'}</td>
+            <td style={s.td}>ETB {parseFloat(o.total_amount).toLocaleString()}</td>
+            <td style={s.td}>{o.payment_method}</td>
+            <td style={s.td}>
+              <span style={{
+                ...s.roleBadge,
+                background: o.status === 'delivered' ? '#d1fae5' : o.status === 'pending' ? '#fef3c7' : '#ede9fe',
+                color: o.status === 'delivered' ? '#059669' : o.status === 'pending' ? '#d97706' : '#7c3aed'
+              }}>{o.status}</span>
+            </td>
+            <td style={s.td}>{new Date(o.created_at).toLocaleDateString()}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
       </div>
     </div>
   );
-}
+} 
 
 // Styles
 const s: Record<string, React.CSSProperties> = {
