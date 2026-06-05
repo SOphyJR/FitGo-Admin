@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API = 'https://fitgo-backend-production-03ee.up.railway.app/api';
-
-type Tab = 'overview' | 'users' | 'products' | 'orders' | 'stores';
-
+type Tab = 'overview' | 'users' | 'products' | 'orders' | 'stores' | 'disputes' | 'revenue';
 export default function App() {
   const [tab, setTab] = useState<Tab>('overview');
   const [users, setUsers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [stores, setStores] = useState<any[]>([]);
+  // Add to state:
+const [disputes, setDisputes] = useState<any[]>([]);
+const [revenue, setRevenue] = useState<any>(null);
+
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [approveEmail, setApproveEmail] = useState('');
@@ -298,11 +300,115 @@ export default function App() {
     </table>
   </div>
 )}
+
+
+// Add to fetchAll:
+const [d, r] = await Promise.all([
+  axios.get(`${API}/disputes`),
+  axios.get(`${API}/revenue/summary`),
+]);
+setDisputes(d.data);
+setRevenue(r.data);
+
+// Add nav items:
+{ tab === 'disputes' && '🚨' } { tab === 'revenue' && '💰' }
+
+// Add to stats grid:
+{ label: 'Open Disputes', value: disputes.filter(d => d.status === 'open').length, emoji: '🚨', color: '#ef4444' },
+{ label: 'FitGo Revenue', value: `ETB ${parseFloat(revenue?.fitgo_total || 0).toLocaleString()}`, emoji: '💰', color: '#10b981' },
+
+// DISPUTES TAB:
+{tab === 'disputes' && (
+  <div style={s.card}>
+    <h2 style={s.cardTitle}>Disputes & Reports ({disputes.length})</h2>
+    <table style={s.table}>
+      <thead>
+        <tr style={s.thead}>
+          <th style={s.th}>Reporter</th>
+          <th style={s.th}>Accused</th>
+          <th style={s.th}>Type</th>
+          <th style={s.th}>Description</th>
+          <th style={s.th}>Status</th>
+          <th style={s.th}>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {disputes.map(d => (
+          <tr key={d.id} style={s.tr}>
+            <td style={s.td}>{d.reporter_name}<br/><small style={{color:'#888'}}>{d.reporter_email}</small></td>
+            <td style={s.td}>{d.accused_name || 'Unknown'}</td>
+            <td style={s.td}>{d.type?.replace('_', ' ')}</td>
+            <td style={s.td}><small>{d.description?.slice(0, 60)}...</small></td>
+            <td style={s.td}>
+              <span style={{...s.roleBadge, background: d.status==='open'?'#fee2e2':'#d1fae5', color: d.status==='open'?'#dc2626':'#059669'}}>
+                {d.status}
+              </span>
+            </td>
+            <td style={s.td}>
+              <button style={s.btnSm} onClick={async () => {
+                const resolution = prompt('Resolution note:');
+                const punish = confirm('Suspend the accused user?');
+                await axios.patch(`${API}/disputes/${d.id}/resolve`, {
+                  resolution,
+                  punish_user_id: punish ? d.reported_against : null,
+                  punishment: 'suspend'
+                });
+                fetchAll();
+              }}>Resolve</button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
+
+
+// REVENUE TAB:
+{tab === 'revenue' && (
+  <div>
+    <div style={{...s.statsGrid, gridTemplateColumns: 'repeat(2,1fr)'}}>
+      {[
+        { label: 'Gross Revenue', value: `ETB ${parseFloat(revenue?.gross_revenue||0).toLocaleString()}`, emoji: '💵' },
+        { label: 'FitGo Earnings', value: `ETB ${parseFloat(revenue?.fitgo_total||0).toLocaleString()}`, emoji: '🏦' },
+        { label: 'Store Payouts', value: `ETB ${parseFloat(revenue?.store_payouts||0).toLocaleString()}`, emoji: '🏪' },
+        { label: 'Driver Payouts', value: `ETB ${parseFloat(revenue?.driver_payouts||0).toLocaleString()}`, emoji: '🛵' },
+      ].map(stat => (
+        <div key={stat.label} style={s.statCard}>
+          <div style={s.statEmoji}>{stat.emoji}</div>
+          <div style={s.statNum}>{stat.value}</div>
+          <div style={s.statLabel}>{stat.label}</div>
+        </div>
+      ))}
+    </div>
+    <div style={s.card}>
+      <h2 style={s.cardTitle}>Revenue Model</h2>
+      <table style={s.table}>
+        <thead><tr style={s.thead}><th style={s.th}>Stream</th><th style={s.th}>Rate</th><th style={s.th}>Description</th></tr></thead>
+        <tbody>
+          {[
+            ['Commission', '10%', 'Per completed order from stores'],
+            ['Delivery Fee (FitGo cut)', '30%', 'Of ETB 150 delivery fee per order'],
+            ['Seller Registration', 'ETB 1,000', 'One-time after 30-day trial'],
+            ['Driver Registration', 'ETB 1,000', 'One-time after 30-day trial'],
+            ['Pro Seller Plan', 'ETB 299/month', 'Featured listing + analytics'],
+          ].map(([stream, rate, desc]) => (
+            <tr key={stream} style={s.tr}>
+              <td style={s.td}><b>{stream}</b></td>
+              <td style={{...s.td, color:'#FF3C2E', fontWeight:'bold'}}>{rate}</td>
+              <td style={s.td}>{desc}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );
 } 
-
 // Styles
 const s: Record<string, React.CSSProperties> = {
   app: { display: 'flex', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif', background: '#f8fafc' },
