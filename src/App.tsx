@@ -42,16 +42,15 @@ const [revenue, setRevenue] = useState<any>(null);
     }
   };
 
-  const approveSeller = async () => {
-    try {
-      const res = await axios.post(`${API}/auth/approve-seller`, { email: approveEmail });
-      setApproveMsg('✅ ' + res.data.message);
-      fetchAll();
-    } catch (e: any) {
-      setApproveMsg('❌ ' + (e.response?.data?.error || 'Failed'));
-    }
-  };
-
+const approveUser = async () => {
+  try {
+    const res = await axios.post(`${API}/auth/approve-user`, { email: approveEmail });
+    setApproveMsg('✅ ' + res.data.message);
+    fetchAll();
+  } catch (e: any) {
+    setApproveMsg('❌ ' + (e.response?.data?.error || 'Failed'));
+  }
+};
   const deleteUser = async (firebase_uid: string) => {
     if (!window.confirm('Delete this user?')) return;
     await axios.delete(`${API}/users/${firebase_uid}`);
@@ -119,7 +118,7 @@ const [revenue, setRevenue] = useState<any>(null);
                   value={approveEmail}
                   onChange={e => setApproveEmail(e.target.value)}
                 />
-                <button style={s.btn} onClick={approveSeller}>Approve</button>
+                <button style={s.btn} onClick={approveUser}>Approve</button>
               </div>
               {approveMsg && <div style={s.msg}>{approveMsg}</div>}
             </div>
